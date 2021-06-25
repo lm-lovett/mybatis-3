@@ -50,18 +50,58 @@ import org.apache.ibatis.util.MapUtil;
  */
 public class Reflector {
 
+  /**
+   * 对应的类
+   */
   private final Class<?> type;
+  /**
+   * 可读属性数组
+   */
   private final String[] readablePropertyNames;
+  /**
+   * 可写属性集合
+   */
   private final String[] writablePropertyNames;
+  /**
+   * 属性对应的setting方法的映射、
+   *
+   * key 属性名称
+   * value 为Invoker 对象
+   */
   private final Map<String, Invoker> setMethods = new HashMap<>();
+  /**
+   * 属性对应的getting 方法的映射
+   *
+   * key 为属性名称
+   * value 为Invoker 对象
+   */
   private final Map<String, Invoker> getMethods = new HashMap<>();
+  /**
+   * 属性对应的setting 方法的方法参数类型的映射。{@link #setMethods}
+   *
+   * key 为属性名称
+   * value 为返回值类型
+   */
   private final Map<String, Class<?>> setTypes = new HashMap<>();
+  /**
+   * 属性对象的getting 方法的返回值类型的映射。{@link #getMethods}
+   *
+   * key 为属性名称
+   * value 为返回值类型
+   */
   private final Map<String, Class<?>> getTypes = new HashMap<>();
+  /**
+   * 默认构造方法
+   */
   private Constructor<?> defaultConstructor;
 
+  /**
+   * 不区分大小写的属性集合
+   */
   private Map<String, String> caseInsensitivePropertyMap = new HashMap<>();
 
   public Reflector(Class<?> clazz) {
+    //设置对应的类
     type = clazz;
     addDefaultConstructor(clazz);
     addGetMethods(clazz);
@@ -84,10 +124,13 @@ public class Reflector {
   }
 
   private void addGetMethods(Class<?> clazz) {
+    //因为  子父类的关系  所以  val 是 list，可能  获取 多个  getMethod
     Map<String, List<Method>> conflictingGetters = new HashMap<>();
+    //获取calzz 中所有方法
     Method[] methods = getClassMethods(clazz);
-    Arrays.stream(methods).filter(m -> m.getParameterTypes().length == 0 && PropertyNamer.isGetter(m.getName()))
-      .forEach(m -> addMethodConflict(conflictingGetters, PropertyNamer.methodToProperty(m.getName()), m));
+    //遍历所有方法 1、getting方法是没有参数的所以m.getParameterTypes().length == 0 ；2、方法名是 get or is 开头说明是getting方法 3、PropertyNamer.methodToProperty获得属性名称 4、调用addMethodConflict 添加到{@link #conflictingGetters}中
+    Arrays.stream(methods).filter(m -> m.getParameterTypes().length == 0 && PropertyNamer.isGetter(m.getName())).forEachOrdered(m -> addMethodConflict(conflictingGetters, PropertyNamer.methodToProperty(m.getName()), m));
+    //解决getting 冲突方法
     resolveGetterConflicts(conflictingGetters);
   }
 
@@ -274,13 +317,17 @@ public class Reflector {
    * @return An array containing all methods in this class
    */
   private Method[] getClassMethods(Class<?> clazz) {
+    //每个方法签名和该方法的映射
     Map<String, Method> uniqueMethods = new HashMap<>();
     Class<?> currentClass = clazz;
+    //循环遍历类  直到 找到顶级父类 object 结束循环
     while (currentClass != null && currentClass != Object.class) {
+      //记录当前类中的方法
       addUniqueMethods(uniqueMethods, currentClass.getDeclaredMethods());
 
-      // we also need to look for interface methods -
+      // we also need to look for interface methods - 我们需要 遍历查找接口的方法 可能这个类是抽象类
       // because the class may be abstract
+      //记录接口中定义的方法
       Class<?>[] interfaces = currentClass.getInterfaces();
       for (Class<?> anInterface : interfaces) {
         addUniqueMethods(uniqueMethods, anInterface.getMethods());
@@ -290,7 +337,7 @@ public class Reflector {
     }
 
     Collection<Method> methods = uniqueMethods.values();
-
+    //装换成method数组返回
     return methods.toArray(new Method[0]);
   }
 
