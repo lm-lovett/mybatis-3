@@ -41,12 +41,16 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
   @Override
   public void setProperties(Properties properties) {
     Properties driverProperties = new Properties();
+    //创建DataSource 对应的metaObject 对象
     MetaObject metaDataSource = SystemMetaObject.forObject(dataSource);
+    //遍历properties 属性，初始化到driverProperties 和 MetaObject 中
     for (Object key : properties.keySet()) {
       String propertyName = (String) key;
+      //初始化到driverProperties 中
       if (propertyName.startsWith(DRIVER_PROPERTY_PREFIX)) {
         String value = properties.getProperty(propertyName);
         driverProperties.setProperty(propertyName.substring(DRIVER_PROPERTY_PREFIX_LENGTH), value);
+        //初始化到MetaObject 中
       } else if (metaDataSource.hasSetter(propertyName)) {
         String value = (String) properties.get(propertyName);
         Object convertedValue = convertValue(metaDataSource, propertyName, value);
@@ -55,6 +59,7 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
         throw new DataSourceException("Unknown DataSource property: " + propertyName);
       }
     }
+    //设置driverProperties 到MetaObject
     if (driverProperties.size() > 0) {
       metaDataSource.setValue("driverProperties", driverProperties);
     }
@@ -67,7 +72,11 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
 
   private Object convertValue(MetaObject metaDataSource, String propertyName, String value) {
     Object convertedValue = value;
+
+    //获得该属性的 setting 方法的参数类型
     Class<?> targetType = metaDataSource.getSetterType(propertyName);
+
+    //转化
     if (targetType == Integer.class || targetType == int.class) {
       convertedValue = Integer.valueOf(value);
     } else if (targetType == Long.class || targetType == long.class) {
@@ -75,6 +84,8 @@ public class UnpooledDataSourceFactory implements DataSourceFactory {
     } else if (targetType == Boolean.class || targetType == boolean.class) {
       convertedValue = Boolean.valueOf(value);
     }
+
+    //返回
     return convertedValue;
   }
 
