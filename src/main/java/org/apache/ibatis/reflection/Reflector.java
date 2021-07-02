@@ -330,22 +330,29 @@ public class Reflector {
       }
     }
     if (clazz.getSuperclass() != null) {
+      //递归处理父类
       addFields(clazz.getSuperclass());
     }
   }
 
   private void addSetField(Field field) {
+    //判断是合理的属性
     if (isValidPropertyName(field.getName())) {
+      //添加到setMethods 中
       setMethods.put(field.getName(), new SetFieldInvoker(field));
       Type fieldType = TypeParameterResolver.resolveFieldType(field, type);
+      //添加到setTypes 中
       setTypes.put(field.getName(), typeToClass(fieldType));
     }
   }
 
   private void addGetField(Field field) {
+    //判断是合理的属性
     if (isValidPropertyName(field.getName())) {
+      //添加到getMethods 中
       getMethods.put(field.getName(), new GetFieldInvoker(field));
       Type fieldType = TypeParameterResolver.resolveFieldType(field, type);
+      //添加到getTypes 中
       getTypes.put(field.getName(), typeToClass(fieldType));
     }
   }
@@ -476,7 +483,7 @@ public class Reflector {
 
   /**
    * Gets the type for a property setter.
-   *
+   *用于对它的属性进行访问
    * @param propertyName - the name of the property
    * @return The Class of the property setter
    */
